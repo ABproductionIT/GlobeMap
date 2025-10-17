@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smartwar Globe Map on Canvas - Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+</head>
+<body>
+  <canvas id="globeCanvas"></canvas>
+
+  <div id="logPanel">FPS: -</div>
+  <div id="hint" class="cursor-hint">aaa</div>
+
+  <link rel="stylesheet" href="styles.css">
+  <script src="configs.js"></script>
+  <script src="country_borders.js"></script>
+  <script src="globe_map.js"></script>
+  <script src="camera.js"></script>
+
+  <script>
+  // Главный цикл
+let __globe_loop_running = false;
+(function gameLoopStarter(){
+  if (typeof ctx === 'undefined' || typeof projectLatLon === 'undefined' || typeof drawGlobe === 'undefined') {
+    return requestAnimationFrame(gameLoopStarter);
+  }
+  if (__globe_loop_running) return;
+  __globe_loop_running = true;
+
+  let _last = performance.now();
+  let fps = 0;
+  let frames = 0;
+  let lastFpsUpdate = performance.now();
+
+  function step() {
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - _last)/1000);
+    _last = now;
+
+    frames++;
+    const upd_delay_1s = ((now - lastFpsUpdate) >= 1000)
+
+    if (upd_delay_1s) {   // раз в секунду
+      fps = frames;
+      frames = 0;
+      lastFpsUpdate = now;
+
+      const fpsPanel = document.getElementById('logPanel');
+          if (fpsPanel) {
+            fpsPanel.innerText = `FPS: ${fps}\nZOOM: ${zoomScale}`;
+          }
+    }
+
+    drawGlobe();
+    drawLandBorders();
+    drawGrid();
+    requestAnimationFrame(step);
+  }
+  step();
+})();
+
+  </script>
+<script>
+(function(){
+  const hint = document.getElementById('hint');
+  const padding = 8;     // отступ от краёв окна
+  const offset  = 14;    // смещение от курсора
+  let mouseX = -1, mouseY = -1, needsMove = false;
+
+  // Следим за курсором один раз на всю страницу
+  window.addEventListener('mousemove', (e)=>{
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    needsMove = true;
+  }, {passive:true});
+
+  // Плавное «прилипание» к курсору (через rAF)
+  function followLoop(){
+    if(needsMove){
+      const hw = hint.offsetWidth;
+      const hh = hint.offsetHeight;
+      let x = mouseX + offset;
+      let y = mouseY + offset;
+
+      // если не помещается справа/снизу — переносим влево/вверх от курсора
+      if (x + hw + padding > window.innerWidth)  x = mouseX - hw - offset;
+      if (y + hh + padding > window.innerHeight) y = mouseY - hh - offset;
+
+      hint.style.transform = `translate(${x}px, ${y}px)`;
+      needsMove = false;
+    }
+    requestAnimationFrame(followLoop);
+  }
+  requestAnimationFrame(followLoop);
+
+  /**
+   * Показать подсказку у курсора.
+   * @param {Object} p
+   * @param {number} [p.lat] - широта
+   * @param {number} [p.lon] - долгота
+   * @param {string} [p.text] - кастомный текст (если нужно заменить формат)
+   */
+  window.setCursorHint = function({lat, lon, text} = {}){
+    const s = (text != null)
+      ? text
+      : `${lat ?? ''}\n${lon ?? ''}`;
+
+    hint.textContent = s;
+    hint.style.opacity = '1';
+    // позиция подтянется в ближайший rAF благодаря needsMove=true
+    needsMove = true;
+  };
+
+  /** Спрятать подсказку (если нужно) */
+  window.hideCursorHint = function(){
+    hint.style.transform = 'translate(-1000px,-1000px)';
+  };
+})();
+</script>
+</body>
+</html>

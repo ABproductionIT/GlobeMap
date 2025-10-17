@@ -1,0 +1,311 @@
+html, body {       margin: 0;
+      padding: 0;
+      background-color: #000000;
+      color: #ffffff;
+      font-family: 'Courier New', Courier, monospace;height: 100dvh; }
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+canvas {
+  position: absolute;
+  display: block;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+canvas:active {
+  cursor: all-scroll	;
+}
+
+  .cursor-hint{
+    position:fixed;
+    left:0; top:0;
+    transform: translate(-1000px,-1000px); /* прячем до первого движения */
+    padding:1px 1px;
+    font-size:12px;
+    pointer-events:none; /* не перехватывать мышь */
+    white-space: pre;
+    backdrop-filter: blur(4px);
+    will-change: transform;
+    z-index: 40000;
+  }
+
+.app-container {
+  position: absolute;
+  left: 20%;
+  width: 60%;
+  max-width: 60%;
+  max-height: 25vh;
+  z-index: 10000;
+  user-select: none;
+}
+
+.chat-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 8px;
+  box-sizing: border-box;
+  max-height: 20vh;
+}
+
+#messages {
+  flex-grow: 1;
+  font-size: 10px;
+  padding: 8px;
+  margin-bottom: 8px;
+  border-radius: 5px;
+  /* background-color: rgba(0, 15, 20, 0.85); color: #00ffee; border: 1px solid #00eaff44; */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column-reverse;
+  height: 100%;
+  max-height: 100%;
+  box-shadow: inset 0 0 12px #00ffff22;
+}
+
+.input-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#data-input {
+  flex: 1;
+  padding: 8px;
+  font-size: 8px;
+  border-radius: 5px;
+  background-color: rgba(0, 30, 35, 0.9);
+  color: #aefeff;
+  border: 1px solid #00eaff55;
+  resize: none;
+  overflow-y: auto;
+  line-height: 1.4;
+  max-height: 120px;
+  box-shadow: inset 0 0 8px #00eaff22;
+  display: none;
+}
+#data-input.show { display: block; }
+
+#data-input:focus {
+  outline: none;
+  border-color: #00ffffaa;
+  box-shadow: 0 0 6px #00ffffaa, inset 0 0 8px #00ffff33;
+}
+
+#hudContainer {
+  position: absolute;
+  top: 70px;
+  right: 10px;
+  display: flex;
+  gap: 8px;              /* расстояние между блоками */
+}
+
+#hudNotificationContainer {
+  position: absolute;
+  top: 100px;
+  right: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+#logPanel {
+  padding: 6px 10px;
+  user-select: none;
+  pointer-events: none;
+  z-index: 15000;
+}
+
+#CitizenshipPanel {
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid #00d6ff;
+  border-radius: 8px;
+  color: #00fff7;
+  font-family: monospace;
+  font-size: 8px;
+  text-shadow: 0 0 6px #14f9ff;
+  box-shadow: 0 0 12px #00d6ff33;
+  user-select: none;
+  pointer-events: none;
+}
+
+#CurrentCountryPanel{
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.55);
+  border: none;
+  border-radius: 8px;
+  color: cyan;
+  font-family: monospace;
+  font-size: 8px;        /* чуть крупнее, если нужно */
+  text-shadow: 0 0 6px red;
+  box-shadow: 0 0 12px #ff000033;
+  user-select: none;
+  pointer-events: auto;   /* <— включаем клики */
+  cursor: pointer;        /* визуально “кнопка” */
+  touch-action: manipulation;
+  display: block;
+}
+
+/* необязательно: подсветка активного 3-сек режима */
+#CurrentCountryPanel.active{
+  border: 1px solid;
+  border-color: #00ffa6;
+  color: #00ffa6;
+  text-shadow: 0 0 6px #00ffa6;
+  box-shadow: 0 0 12px #00ffa666, inset 0 0 12px #00ffa644;
+}
+
+/* компактная карточка */
+.hud-card{min-width:80px;max-width:120px;padding:1px 10px;background:transparent;border:0}
+
+/* по одной колонке, плотнее вертикальный шаг */
+.stat{display:grid;grid-template-columns:1fr;align-items:center;margin:8px 0;row-gap:8px}
+
+/* тонкий бар с неон-контуром */
+.bar{
+  position:relative;
+  height:4px;                /* тоньше */
+  border-radius:1px;
+  background:transparent;    /* фон убираем */
+  overflow:visible;          /* чтобы свет и подпись не обрезались */
+  display:flex;align-items:center;justify-content:flex-start;
+  isolation:isolate;         /* чтобы blend не «тёк» наружу */
+  margin:2px;
+}
+
+/* 1px неоновая «рама» вокруг бара */
+.bar::before{
+  content:"";
+  position:absolute; inset:0;
+  border:1px solid rgba(0,246,255,.7);
+  border-radius:inherit;
+  box-shadow:
+    0 0 3px rgba(0,246,255,.35),
+    0 0 4px rgba(0,246,255,.25);
+  pointer-events:none;
+}
+
+/* заливка — тонкий неон-градиент */
+.bar .fill{
+  position:absolute; inset:0 auto 0 0; width:0%;
+  border-radius:inherit;
+}
+.bar .fill::before{
+  content:""; position:absolute; inset:0;
+  background:linear-gradient(90deg, rgba(0,255,170,.9), rgba(0,210,255,.9));
+  box-shadow:
+    0 0 10px rgba(0,242,255,.55),
+    inset 0 0 8px rgba(0,242,255,.35);
+}
+
+/* засечки — очень тонкие с лёгким свечением */
+.bar .tick{
+  position:absolute; top:-3px; bottom:-3px; width:1px;
+  background:rgba(0,246,255,.35);
+  box-shadow:0 0 6px rgba(0,246,255,.35);
+}
+
+/* маленькая подпись сверху от бара (FUEL/ORBIT) — только CSS */
+.bar .label{
+  position:absolute; left:0; top:-10px;
+  font-size:8px; font-weight:800; letter-spacing:.14em;
+  color:#e9feff;
+  text-shadow:0 0 6px rgba(0,242,255,.65);
+  mix-blend-mode:screen;     /* хорошо читается на тёмном и на заливке */
+  pointer-events:none; z-index:2;
+}
+
+/* === Overlay === */
+.country-menu{
+  position: fixed; inset: 0;
+  display: none;               /* .show => flex */
+  align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.55);
+  z-index: 99999;
+}
+.country-menu.show{ display:flex; }
+
+/* === Window (strict 50% x 50%) === */
+.country-menu-content{
+  position: relative;          /* for absolute button */
+  width: 50vw; height: 50vh;   /* strict 50% width/height */
+  min-width: 280px; min-height: 220px;
+  background: rgba(0,10,14,0.95);
+  border: 1px solid #00d6ff66;
+  border-radius: 12px;
+  box-shadow: 0 0 24px #00d6ff22;
+  padding: 16px;
+  font-family: monospace; color: #aefeff;
+  overflow: hidden;
+}
+
+/* Close button */
+.country-close{
+  position: absolute; top: 10px; right: 12px;
+  background: transparent; border: 1px solid #00d6ff55;
+  color: #00eaff; width: 28px; height: 28px; line-height: 26px;
+  border-radius: 6px; cursor: pointer;
+}
+
+/* Body (scrollable) and spacing for bottom button */
+.country-body{
+  height: 100%;
+  padding-bottom: 56px; /* space for bottom-right button */
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Bottom-right button container */
+.country-actions{
+  position: absolute; right: 12px; bottom: 12px;
+}
+
+/* Primary button */
+.btn-primary{
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #00ffaa88;
+  background: rgba(0,255,170,0.08);
+  color: #00ffaa;
+  font: 700 12px/1 monospace; letter-spacing: .08em;
+  text-shadow: 0 0 6px rgba(0,255,200,.4);
+  box-shadow: inset 0 0 10px rgba(0,0,0,.55), 0 0 16px rgba(0,255,170,.22);
+  cursor: pointer;
+}
+.btn-primary:active{ background:#00ffaa; color:#001415; }
+
+/* Header: flag, name, stats */
+.country-header{
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  text-align:center; padding:10px 8px 4px;
+}
+.flag-wrap{
+  width:64px; height:64px; border-radius:50%; overflow:hidden;
+  border:1px solid #00d6ff66; box-shadow:0 0 12px #00d6ff33;
+  display:flex; align-items:center; justify-content:center;
+  background:#001216;
+}
+.flag-wrap img{ width:100%; height:100%; object-fit:cover; display:block; }
+/* if no src -> hide img, show emoji */
+.flag-wrap img[src=""], .flag-wrap img:not([src]) { display: none; }
+.flag-emoji{ font-size:44px; line-height:1; }
+
+.country-name{
+  font-weight:700; letter-spacing:.4px; color:#e8faff;
+  text-shadow:0 0 8px #00f2ff55;
+}
+
+.country-stats{
+  display:flex; gap:16px; flex-wrap:wrap; justify-content:center;
+  font-size:12px; color:#bffbff;
+}
+.country-stats .label{ color:#a8efff; margin-right:4px; }
+
+
